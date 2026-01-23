@@ -85,8 +85,8 @@
 
     <script>
   var API_KEY = "4dfe0c57-2c98-465a-bcd5-4d46628c4236";
-  var LAT = 37.49447;
-  var LON = 127.01088;
+  var LAT = 37.4836;
+  var LON = 127.0327;
 
   var REFRESH_SECONDS = 60;
   var remaining = REFRESH_SECONDS;
@@ -124,7 +124,7 @@
 
       setText("aqi", p.aqius);
       setText("main", "Polluant: " + pollutantLabel(p.mainus));
-      setText("city", "Ville: " + json.data.city);
+      setText("city", "Quartier : Seocho-gu");
       setText("updated", "Dernière requête API : " + new Date().toLocaleTimeString());
     } catch (e) {
       setText("updated", "Erreur API – nouvelle tentative...");
