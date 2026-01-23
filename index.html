@@ -109,11 +109,12 @@
   async function fetchAQI() {
     remaining = REFRESH_SECONDS;
 
-    var url = "https://api.airvisual.com/v2/nearest_city"
-      + "?lat=" + LAT
-      + "&lon=" + LON
-      + "&key=" + API_KEY
-      + "&_t=" + Date.now();
+    var url = "https://api.airvisual.com/v2/city"
+  + "?city=Seocho-gu"
+  + "&state=Seoul"
+  + "&country=South%20Korea"
+  + "&key=" + API_KEY
+  + "&_t=" + Date.now();
 
     try {
       var res = await fetch(url, { cache: "reload" });
