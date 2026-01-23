@@ -3,69 +3,77 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta http-equiv="refresh" content="3600"> <!-- sécurité: reload au bout d'1h -->
-  <title>Pollution – Seocho (Seoul)</title>
+  <title>AQI – Seocho-gu (Seoul)</title>
+
+  <!-- Sécurité : reload complet au bout d'1h -->
+  <meta http-equiv="refresh" content="3600">
+
   <style>
-    :root { color-scheme: light; }
-    body {
-      margin: 0; padding: 0;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
-      background: #111;
-      color: #fff;
+    :root { color-scheme: dark; }
+    body{
+      margin:0; padding:0;
+      font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
+      background:#000;
+      color:#fff;
     }
-    .wrap {
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      padding: 24px;
-      box-sizing: border-box;
-      text-align: center;
+    .wrap{
+      min-height:100vh;
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      justify-content:center;
+      padding:24px;
+      box-sizing:border-box;
+      text-align:center;
     }
-    .place {
-      font-size: 22px;
-      letter-spacing: 0.2px;
-      margin-bottom: 10px;
+    .place{
+      font-size:26px;
+      letter-spacing:0.2px;
+      margin-bottom:12px;
+      opacity:0.95;
     }
-    .big {
-      font-size: 360px;
-      font-weight: 800;
-      line-height: 1;
-      margin: 10px 0 8px;
+    .big{
+      font-size:360px; /* 2× plus gros */
+      font-weight:900;
+      line-height:1;
+      margin:6px 0 10px;
     }
-    .label {
-      font-size: 20px;
-      opacity: 0.85;
-      margin-bottom: 18px;
+    .label{
+      font-size:22px;
+      opacity:0.85;
+      margin-bottom:18px;
     }
-    .row {
-      display: flex;
-      gap: 16px;
-      flex-wrap: wrap;
-      justify-content: center;
-      margin-top: 6px;
-      opacity: 0.9;
+    .row{
+      display:flex;
+      gap:14px;
+      flex-wrap:wrap;
+      justify-content:center;
+      margin-top:6px;
+      opacity:0.95;
     }
-    .pill {
-      border: 2px solid #fff;
-      border-radius: 999px;
-      padding: 8px 14px;
-      font-size: 16px;
+    .pill{
+      border:2px solid #fff;
+      border-radius:999px;
+      padding:8px 14px;
+      font-size:16px;
+      white-space:nowrap;
     }
-    .muted {
-      margin-top: 16px;
-      font-size: 14px;
-      opacity: 0.75;
+    .muted{
+      margin-top:14px;
+      font-size:15px;
+      opacity:0.78;
+      max-width:900px;
     }
-    .error {
-      margin-top: 14px;
-      font-size: 16px;
-      color: #b00020;
-      max-width: 700px;
+    .error{
+      margin-top:14px;
+      font-size:16px;
+      color:#ff6b6b;
+      max-width:900px;
+      white-space:pre-wrap;
     }
   </style>
 </head>
+
 <body>
   <div class="wrap">
     <div class="place" id="place">Seocho-gu, Seoul</div>
@@ -75,77 +83,116 @@
 
     <div class="row">
       <div class="pill" id="main">Polluant: --</div>
-      <div class="pill" id="city">Ville: --</div>
+      <div class="pill" id="zone">Zone: Seocho-gu</div>
+      <div class="pill" id="station">Station: --</div>
     </div>
 
-    <div class="muted" id="updated">Mise à jour: --</div>
+    <div class="muted" id="updated">Dernière requête: --</div>
     <div class="muted" id="countdown">Prochaine mise à jour dans 60 s</div>
     <div class="error" id="err" style="display:none;"></div>
   </div>
 
-    <script>
-  var API_KEY = "4dfe0c57-2c98-465a-bcd5-4d46628c4236";
-  var LAT = 37.4836;
-  var LON = 127.0327;
+  <script>
+    // ==== CONFIG ====
+    // IMPORTANT: remplace la valeur ci-dessous par TA clé (entre guillemets)
+    var API_KEY = "Y4dfe0c57-2c98-465a-bcd5-4d46628c4236";
 
-  var REFRESH_SECONDS = 60;
-  var remaining = REFRESH_SECONDS;
+    // Point central approximatif de Seocho-gu
+    var LAT = 37.4836;
+    var LON = 127.0327;
 
-  function setText(id, txt) {
-    document.getElementById(id).textContent = txt;
-  }
+    // Rafraîchissement
+    var REFRESH_SECONDS = 60;
+    var remaining = REFRESH_SECONDS;
 
-  function pollutantLabel(code) {
-    if (!code) return "--";
-    var c = String(code).toLowerCase();
-    if (c === "p2") return "PM2.5";
-    if (c === "p1") return "PM10";
-    if (c === "o3") return "O₃";
-    if (c === "n2") return "NO₂";
-    if (c === "s2") return "SO₂";
-    return code;
-  }
+    function setText(id, txt){ document.getElementById(id).textContent = txt; }
 
-  async function fetchAQI() {
-    remaining = REFRESH_SECONDS;
-
-    var url = "https://api.airvisual.com/v2/city"
-  + "?city=Seocho-gu"
-  + "&state=Seoul"
-  + "&country=South%20Korea"
-  + "&key=" + API_KEY
-  + "&_t=" + Date.now();
-
-    try {
-      var res = await fetch(url, { cache: "reload" });
-      var json = await res.json();
-
-      var p = json.data.current.pollution;
-
-      setText("aqi", p.aqius);
-      setText("main", "Polluant: " + pollutantLabel(p.mainus));
-      setText("city", "Quartier : Seocho-gu");
-      setText("updated", "Dernière requête API : " + new Date().toLocaleTimeString());
-    } catch (e) {
-      setText("updated", "Erreur API – nouvelle tentative...");
+    function showErr(msg){
+      var el = document.getElementById("err");
+      el.style.display = "block";
+      el.textContent = msg;
     }
-  }
+    function clearErr(){
+      var el = document.getElementById("err");
+      el.style.display = "none";
+      el.textContent = "";
+    }
 
-  // Compteur visuel (preuve que ça tourne)
-  setInterval(function () {
-    remaining--;
-    if (remaining < 0) remaining = REFRESH_SECONDS;
-    setText("countdown", "Prochaine mise à jour dans " + remaining + " s");
-  }, 1000);
+    function pollutantLabel(code){
+      if (!code) return "--";
+      var c = String(code).toLowerCase();
+      if (c === "p2") return "PM2.5";
+      if (c === "p1") return "PM10";
+      if (c === "o3") return "O₃";
+      if (c === "n2") return "NO₂";
+      if (c === "s2") return "SO₂";
+      if (c === "co") return "CO";
+      return code;
+    }
 
-  // Requête API toutes les 60 s
-  fetchAQI();
-  setInterval(fetchAQI, REFRESH_SECONDS * 1000);
+    async function fetchAQI(){
+      clearErr();
+      remaining = REFRESH_SECONDS;
 
-  // Sécurité : reload dur toutes les 10 minutes (Safari iOS)
-  setTimeout(function () {
-    location.reload(true);
-  }, 10 * 60 * 1000);
-</script>
+      if (!API_KEY || API_KEY.indexOf("YOUR_") === 0){
+        showErr("Ajoute ta clé API IQAir dans le code : API_KEY = \"...\".");
+        return;
+      }
+
+      // nearest_city = station la plus proche (souvent Yongsan-dong). On affiche Seocho comme 'zone' fixe.
+      var url = "https://api.airvisual.com/v2/nearest_city"
+        + "?lat=" + encodeURIComponent(LAT)
+        + "&lon=" + encodeURIComponent(LON)
+        + "&key=" + encodeURIComponent(API_KEY)
+        + "&_t=" + Date.now(); // anti-cache iOS
+
+      try{
+        var res = await fetch(url, { cache: "reload" });
+        var text = await res.text();
+
+        var json = null;
+        try { json = JSON.parse(text); } catch (_) {}
+
+        if (!res.ok){
+          var msg = "HTTP " + res.status;
+          if (json && json.data && json.data.message) msg += " — " + json.data.message;
+          else msg += " — " + text;
+          showErr(msg);
+          setText("updated", "Dernière requête: " + new Date().toLocaleTimeString());
+          return;
+        }
+
+        if (!json || json.status !== "success" || !json.data || !json.data.current || !json.data.current.pollution){
+          showErr("Réponse API inattendue: " + (text ? text.slice(0, 200) : "(vide)"));
+          setText("updated", "Dernière requête: " + new Date().toLocaleTimeString());
+          return;
+        }
+
+        var p = json.data.current.pollution;
+        setText("aqi", (p.aqius !== undefined && p.aqius !== null) ? String(p.aqius) : "--");
+        setText("main", "Polluant: " + pollutantLabel(p.mainus));
+        setText("station", "Station: " + (json.data.city || "--"));
+        setText("updated", "Dernière requête: " + new Date().toLocaleTimeString());
+
+      }catch(e){
+        showErr("Erreur réseau / Safari: " + (e && e.message ? e.message : String(e)));
+        setText("updated", "Dernière requête: " + new Date().toLocaleTimeString());
+      }
+    }
+
+    // Compteur visible (preuve que le script tourne)
+    setInterval(function(){
+      remaining--;
+      if (remaining < 0) remaining = REFRESH_SECONDS;
+      setText("countdown", "Prochaine mise à jour dans " + remaining + " s");
+    }, 1000);
+
+    // Requête toutes les 60s
+    fetchAQI();
+    setInterval(fetchAQI, REFRESH_SECONDS * 1000);
+
+    // Sécurité iOS: reload "dur" toutes les 10 min
+    setTimeout(function(){ location.reload(true); }, 10 * 60 * 1000);
+  </script>
 </body>
 </html>
