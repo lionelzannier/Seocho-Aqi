@@ -79,101 +79,72 @@
     </div>
 
     <div class="muted" id="updated">Mise à jour: --</div>
+    <div class="muted" id="countdown">Prochaine mise à jour dans 60 s</div>
     <div class="error" id="err" style="display:none;"></div>
   </div>
 
-  <script>
-    // === CONFIG ===
-    var API_KEY = "4dfe0c57-2c98-465a-bcd5-4d46628c4236";
+    <script>
+  var API_KEY = "4dfe0c57-2c98-465a-bcd5-4d46628c4236";
+  var LAT = 37.49447;
+  var LON = 127.01088;
 
-    // Centre approximatif de Seocho-gu
-    // Sources publiques de coordonnées (valeurs proches selon la source)
-    var LAT = 37.49447;
-    var LON = 127.01088;
+  var REFRESH_SECONDS = 60;
+  var remaining = REFRESH_SECONDS;
 
-    // Refresh toutes les 60s
-    var REFRESH_MS = 60 * 1000;
+  function setText(id, txt) {
+    document.getElementById(id).textContent = txt;
+  }
 
-    // Petit mapping du code "mainus" vers un libellé lisible
-    function pollutantLabel(code) {
-      if (!code) return "--";
-      var c = String(code).toLowerCase();
-      if (c === "p2") return "PM2.5 (p2)";
-      if (c === "p1") return "PM10 (p1)";
-      if (c === "o3") return "Ozone (O₃)";
-      if (c === "n2") return "NO₂ (n2)";
-      if (c === "s2") return "SO₂ (s2)";
-      if (c === "co") return "CO";
-      return code;
+  function pollutantLabel(code) {
+    if (!code) return "--";
+    var c = String(code).toLowerCase();
+    if (c === "p2") return "PM2.5";
+    if (c === "p1") return "PM10";
+    if (c === "o3") return "O₃";
+    if (c === "n2") return "NO₂";
+    if (c === "s2") return "SO₂";
+    return code;
+  }
+
+  async function fetchAQI() {
+    remaining = REFRESH_SECONDS;
+
+    var url = "https://api.airvisual.com/v2/nearest_city"
+      + "?lat=" + LAT
+      + "&lon=" + LON
+      + "&key=" + API_KEY
+      + "&_t=" + Date.now();
+
+    try {
+      var res = await fetch(url, { cache: "reload" });
+      var json = await res.json();
+
+      var p = json.data.current.pollution;
+
+      setText("aqi", p.aqius);
+      setText("main", "Polluant: " + pollutantLabel(p.mainus));
+      setText("city", "Ville: " + json.data.city);
+      setText("updated", "Dernière requête API : " + new Date().toLocaleTimeString());
+    } catch (e) {
+      setText("updated", "Erreur API – nouvelle tentative...");
     }
+  }
 
-    function setText(id, txt) {
-      document.getElementById(id).textContent = txt;
-    }
+  // Compteur visuel (preuve que ça tourne)
+  setInterval(function () {
+    remaining--;
+    if (remaining < 0) remaining = REFRESH_SECONDS;
+    setText("countdown", "Prochaine mise à jour dans " + remaining + " s");
+  }, 1000);
 
-    function showError(msg) {
-      var el = document.getElementById("err");
-      el.style.display = "block";
-      el.textContent = msg;
-    }
+  // Requête API toutes les 60 s
+  fetchAQI();
+  setInterval(fetchAQI, REFRESH_SECONDS * 1000);
 
-    function hideError() {
-      var el = document.getElementById("err");
-      el.style.display = "none";
-      el.textContent = "";
-    }
-
-    async function fetchAQI() {
-      hideError();
-
-      if (!API_KEY || API_KEY.indexOf("PASTE_") === 0) {
-        showError("Ajoute ta clé API IQAir (AirVisual) dans le fichier : API_KEY = \"...\".");
-        return;
-      }
-
-      // Cache-buster pour éviter Safari/iOS qui garde parfois une réponse en cache
-      var url = "https://api.airvisual.com/v2/nearest_city"
-        + "?lat=" + encodeURIComponent(LAT)
-        + "&lon=" + encodeURIComponent(LON)
-        + "&key=" + encodeURIComponent(API_KEY)
-        + "&_t=" + Date.now();
-
-      try {
-        var res = await fetch(url, { cache: "no-store" });
-        if (!res.ok) throw new Error("HTTP " + res.status);
-
-        var json = await res.json();
-
-        if (!json || json.status !== "success" || !json.data || !json.data.current || !json.data.current.pollution) {
-          throw new Error("Réponse inattendue de l’API.");
-        }
-
-        // Format classique observé: data.current.pollution.aqius + mainus + ts :contentReference[oaicite:1]{index=1}
-        var pollution = json.data.current.pollution;
-        var city = json.data.city || "--";
-        var aqi = (pollution.aqius !== undefined && pollution.aqius !== null) ? pollution.aqius : "--";
-        var main = pollutantLabel(pollution.mainus);
-        var ts = pollution.ts || "";
-
-        setText("aqi", String(aqi));
-        setText("main", "Polluant: " + main);
-        setText("city", "Ville: " + city);
-
-        // timestamp ISO -> affichage simple
-        setText("updated", "Mise à jour: " + (ts ? ts.replace("T", " ").replace(".000Z", " UTC") : "--"));
-
-      } catch (e) {
-        showError(
-          "Impossible de récupérer les données IQAir. "
-          + "Causes fréquentes : clé invalide, quota dépassé, ou blocage CORS dans Safari iOS 12. "
-          + "Détail: " + (e && e.message ? e.message : e)
-        );
-      }
-    }
-
-    // Lancement + refresh régulier
-    fetchAQI();
-    setInterval(fetchAQI, REFRESH_MS);
-  </script>
+  // Sécurité : reload dur toutes les 10 minutes (Safari iOS)
+  setTimeout(function () {
+    location.reload(true);
+  }, 10 * 60 * 1000);
+</script>
 </body>
 </html>
