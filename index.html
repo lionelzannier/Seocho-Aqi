@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta http-equiv="refresh" content="3600"> <!-- sécurité: reload au bout d'1h -->
+  <title>Pollution – Seocho (Seoul)</title>
+  <style>
+    :root { color-scheme: light; }
+    body {
+      margin: 0; padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+      background: #fff;
+      color: #111;
+    }
+    .wrap {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      box-sizing: border-box;
+      text-align: center;
+    }
+    .place {
+      font-size: 22px;
+      letter-spacing: 0.2px;
+      margin-bottom: 10px;
+    }
+    .big {
+      font-size: 120px;
+      font-weight: 800;
+      line-height: 1;
+      margin: 10px 0 8px;
+    }
+    .label {
+      font-size: 20px;
+      opacity: 0.85;
+      margin-bottom: 18px;
+    }
+    .row {
+      display: flex;
+      gap: 16px;
+      flex-wrap: wrap;
+      justify-content: center;
+      margin-top: 6px;
+      opacity: 0.9;
+    }
+    .pill {
+      border: 2px solid #111;
+      border-radius: 999px;
+      padding: 8px 14px;
+      font-size: 16px;
+    }
+    .muted {
+      margin-top: 16px;
+      font-size: 14px;
+      opacity: 0.7;
+    }
+    .error {
+      margin-top: 14px;
+      font-size: 16px;
+      color: #b00020;
+      max-width: 700px;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="place" id="place">Seocho-gu, Seoul</div>
+
+    <div class="big" id="aqi">--</div>
+    <div class="label">AQI (US)</div>
+
+    <div class="row">
+      <div class="pill" id="main">Polluant: --</div>
+      <div class="pill" id="city">Ville: --</div>
+    </div>
+
+    <div class="muted" id="updated">Mise à jour: --</div>
+    <div class="error" id="err" style="display:none;"></div>
+  </div>
+
+  <script>
+    // === CONFIG ===
+    var API_KEY = "4dfe0c57-2c98-465a-bcd5-4d46628c4236";
+
+    // Centre approximatif de Seocho-gu
+    // Sources publiques de coordonnées (valeurs proches selon la source)
+    var LAT = 37.49447;
+    var LON = 127.01088;
+
+    // Refresh toutes les 60s
+    var REFRESH_MS = 60 * 1000;
+
+    // Petit mapping du code "mainus" vers un libellé lisible
+    function pollutantLabel(code) {
+      if (!code) return "--";
+      var c = String(code).toLowerCase();
+      if (c === "p2") return "PM2.5 (p2)";
+      if (c === "p1") return "PM10 (p1)";
+      if (c === "o3") return "Ozone (O₃)";
+      if (c === "n2") return "NO₂ (n2)";
+      if (c === "s2") return "SO₂ (s2)";
+      if (c === "co") return "CO";
+      return code;
+    }
+
+    function setText(id, txt) {
+      document.getElementById(id).textContent = txt;
+    }
+
+    function showError(msg) {
+      var el = document.getElementById("err");
+      el.style.display = "block";
+      el.textContent = msg;
+    }
+
+    function hideError() {
+      var el = document.getElementById("err");
+      el.style.display = "none";
+      el.textContent = "";
+    }
+
+    async function fetchAQI() {
+      hideError();
+
+      if (!API_KEY || API_KEY.indexOf("PASTE_") === 0) {
+        showError("Ajoute ta clé API IQAir (AirVisual) dans le fichier : API_KEY = \"...\".");
+        return;
+      }
+
+      // Cache-buster pour éviter Safari/iOS qui garde parfois une réponse en cache
+      var url = "https://api.airvisual.com/v2/nearest_city"
+        + "?lat=" + encodeURIComponent(LAT)
+        + "&lon=" + encodeURIComponent(LON)
+        + "&key=" + encodeURIComponent(API_KEY)
+        + "&_t=" + Date.now();
+
+      try {
+        var res = await fetch(url, { cache: "no-store" });
+        if (!res.ok) throw new Error("HTTP " + res.status);
+
+        var json = await res.json();
+
+        if (!json || json.status !== "success" || !json.data || !json.data.current || !json.data.current.pollution) {
+          throw new Error("Réponse inattendue de l’API.");
+        }
+
+        // Format classique observé: data.current.pollution.aqius + mainus + ts :contentReference[oaicite:1]{index=1}
+        var pollution = json.data.current.pollution;
+        var city = json.data.city || "--";
+        var aqi = (pollution.aqius !== undefined && pollution.aqius !== null) ? pollution.aqius : "--";
+        var main = pollutantLabel(pollution.mainus);
+        var ts = pollution.ts || "";
+
+        setText("aqi", String(aqi));
+        setText("main", "Polluant: " + main);
+        setText("city", "Ville: " + city);
+
+        // timestamp ISO -> affichage simple
+        setText("updated", "Mise à jour: " + (ts ? ts.replace("T", " ").replace(".000Z", " UTC") : "--"));
+
+      } catch (e) {
+        showError(
+          "Impossible de récupérer les données IQAir. "
+          + "Causes fréquentes : clé invalide, quota dépassé, ou blocage CORS dans Safari iOS 12. "
+          + "Détail: " + (e && e.message ? e.message : e)
+        );
+      }
+    }
+
+    // Lancement + refresh régulier
+    fetchAQI();
+    setInterval(fetchAQI, REFRESH_MS);
+  </script>
+</body>
+</html>
