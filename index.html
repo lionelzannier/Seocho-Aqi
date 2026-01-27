@@ -1,6 +1,100 @@
-<script>
-// === CONFIG ===
-  var WORKER_URL = "https://seocho-aqi.lionel-zannier.workers.dev"; // <-- remplace ici
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>AQI – Seocho-gu (Seoul)</title>
+
+  <!-- Sécurité : reload complet au bout d'1h -->
+  <meta http-equiv="refresh" content="3600">
+
+  <style>
+    :root { color-scheme: dark; }
+    body{
+      margin:0; padding:0;
+      font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
+      background:#000;
+      color:#fff;
+    }
+    .wrap{
+      min-height:100vh;
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      justify-content:center;
+      padding:24px;
+      box-sizing:border-box;
+      text-align:center;
+    }
+    .place{
+      font-size:26px;
+      letter-spacing:0.2px;
+      margin-bottom:12px;
+      opacity:0.95;
+    }
+    .big{
+      font-size:240px; /* 2× plus gros */
+      font-weight:900;
+      line-height:1;
+      margin:6px 0 10px;
+    }
+    .label{
+      font-size:22px;
+      opacity:0.85;
+      margin-bottom:18px;
+    }
+    .row{
+      display:flex;
+      gap:14px;
+      flex-wrap:wrap;
+      justify-content:center;
+      margin-top:6px;
+      opacity:0.95;
+    }
+    .pill{
+      border:2px solid #fff;
+      border-radius:999px;
+      padding:8px 14px;
+      font-size:16px;
+      white-space:nowrap;
+    }
+    .muted{
+      margin-top:14px;
+      font-size:15px;
+      opacity:0.78;
+      max-width:900px;
+    }
+    .error{
+      margin-top:14px;
+      font-size:16px;
+      color:#ff6b6b;
+      max-width:900px;
+      white-space:pre-wrap;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="wrap">
+    <div class="place" id="place">Seocho-gu, Seoul</div>
+
+    <div class="big" id="aqi">--</div>
+    <div class="label">AQI (US)</div>
+
+    <div class="row">
+      <div class="pill" id="main">Polluant: --</div>
+      <div class="pill" id="zone">Zone: Seocho-gu</div>
+      <div class="pill" id="station">Station: --</div>
+    </div>
+
+    <div class="muted" id="updated">Dernière requête: --</div>
+    <div class="muted" id="countdown">Prochaine mise à jour dans 60 s</div>
+    <div class="error" id="err" style="display:none;"></div>
+  </div>
+
+  <script>
+  // === CONFIG ===
+  var WORKER_URL = "https://TON-WORKER.workers.dev"; // <-- remplace ici
   var LAT = 37.4836;
   var LON = 127.0327;
 
@@ -62,3 +156,6 @@
   fetchAQI();
   setInterval(fetchAQI, REFRESH_SECONDS * 1000);
 </script>
+
+</body>
+</html>
