@@ -1,161 +1,116 @@
 <!doctype html>
 <html lang="fr">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>AQI – Seocho-gu (Seoul)</title>
+  <meta charset="utf-8">
+  <title>Qualité de l’air – Seocho</title>
 
-  <!-- Sécurité : reload complet au bout d'1h -->
-  <meta http-equiv="refresh" content="3600">
+  <!-- Responsive iPad -->
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <!-- 🔁 Rafraîchissement COMPLET de la page toutes les 5 minutes -->
+  <meta http-equiv="refresh" content="300">
 
   <style>
-    :root { color-scheme: dark; }
-    body{
-      margin:0; padding:0;
-      font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
-      background:#000;
-      color:#fff;
+    body {
+      margin: 0;
+      padding: 0;
+      background: #000;
+      color: #fff;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
     }
-    .wrap{
-      min-height:100vh;
-      display:flex;
-      flex-direction:column;
-      align-items:center;
-      justify-content:center;
-      padding:24px;
-      box-sizing:border-box;
-      text-align:center;
+
+    .wrap {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      padding: 20px;
+      box-sizing: border-box;
     }
-    .place{
-      font-size:26px;
-      letter-spacing:0.2px;
-      margin-bottom:12px;
-      opacity:0.95;
+
+    .place {
+      font-size: 26px;
+      margin-bottom: 10px;
+      opacity: 0.9;
     }
-    .big{
-      font-size:240px; /* 2× plus gros */
-      font-weight:900;
-      line-height:1;
-      margin:6px 0 10px;
+
+    .big {
+      font-size: 240px;
+      font-weight: 900;
+      line-height: 1;
+      margin: 0;
     }
-    .label{
-      font-size:22px;
-      opacity:0.85;
-      margin-bottom:18px;
+
+    .label {
+      font-size: 22px;
+      opacity: 0.8;
+      margin-bottom: 20px;
     }
-    .row{
-      display:flex;
-      gap:14px;
-      flex-wrap:wrap;
-      justify-content:center;
-      margin-top:6px;
-      opacity:0.95;
+
+    .row {
+      display: flex;
+      gap: 14px;
+      flex-wrap: wrap;
+      justify-content: center;
+      margin-bottom: 16px;
     }
-    .pill{
-      border:2px solid #fff;
-      border-radius:999px;
-      padding:8px 14px;
-      font-size:16px;
-      white-space:nowrap;
+
+    .pill {
+      border: 2px solid #fff;
+      border-radius: 999px;
+      padding: 8px 14px;
+      font-size: 16px;
+      white-space: nowrap;
     }
-    .muted{
-      margin-top:14px;
-      font-size:15px;
-      opacity:0.78;
-      max-width:900px;
-    }
-    .error{
-      margin-top:14px;
-      font-size:16px;
-      color:#ff6b6b;
-      max-width:900px;
-      white-space:pre-wrap;
+
+    .muted {
+      font-size: 15px;
+      opacity: 0.75;
+      margin-top: 6px;
     }
   </style>
 </head>
 
 <body>
   <div class="wrap">
-    <div class="place" id="place">Seocho-gu, Seoul</div>
+    <div class="place">Seocho-gu · Séoul</div>
 
     <div class="big" id="aqi">--</div>
-    <div class="label">AQI (US)</div>
+    <div class="label">Indice de qualité de l’air (AQI)</div>
 
     <div class="row">
-      <div class="pill" id="main">Polluant: --</div>
-      <div class="pill" id="zone">Zone: Seocho-gu</div>
-      <div class="pill" id="station">Station: --</div>
+      <div class="pill" id="main">Polluant : --</div>
+      <div class="pill" id="pm25">PM2.5 : --</div>
     </div>
 
-    <div class="muted" id="updated">Dernière requête: --</div>
-    <div class="muted" id="countdown">Prochaine mise à jour dans 60 s</div>
-    <div class="error" id="err" style="display:none;"></div>
+    <div class="row">
+      <div class="pill" id="station">Station : --</div>
+    </div>
+
+    <div class="muted" id="updated">Dernière mesure : --</div>
+    <div class="muted" id="countdown">Prochaine mise à jour : 5 min</div>
   </div>
 
   <script>
-  // === CONFIG ===
-  var WORKER_URL = "https://TON-WORKER.workers.dev"; // <-- remplace ici
-  var LAT = 37.4836;
-  var LON = 127.0327;
+    // ===============================
+    // CONFIGURATION
+    // ===============================
+    var WORKER_URL = "https://seocho-aqi.lionel-zannier.workers.dev"; // ⬅️ À REMPLACER
+    var LAT = 37.4836;
+    var LON = 127.0327;
 
-  // Rafraîchissement 15 minutes
-  var REFRESH_SECONDS = 900;
-  var remaining = REFRESH_SECONDS;
+    // Rafraîchissement DONNÉES : 5 minutes
+    var REFRESH_SECONDS = 300;
+    var remaining = REFRESH_SECONDS;
 
-  function setText(id, txt) {
-    document.getElementById(id).textContent = txt;
-  }
-
-  function polLabel(code) {
-    if (!code) return "--";
-    if (code === "pm25") return "PM2.5";
-    if (code === "pm10") return "PM10";
-    if (code === "o3") return "O₃";
-    if (code === "no2") return "NO₂";
-    if (code === "so2") return "SO₂";
-    return code.toUpperCase();
-  }
-
-  async function fetchAQI() {
-    remaining = REFRESH_SECONDS;
-
-    var url = WORKER_URL
-      + "?lat=" + encodeURIComponent(LAT)
-      + "&lon=" + encodeURIComponent(LON)
-      + "&_t=" + Date.now();
-
-    try {
-      var res = await fetch(url, { cache: "reload" });
-      var json = await res.json();
-
-      if (json.status !== "ok") {
-        setText("updated", "Erreur données WAQI");
-        return;
-      }
-
-      var d = json.data;
-
-      setText("aqi", d.aqi);
-      setText("main", "Polluant : " + polLabel(d.dominentpol));
-      setText("pm25", "PM2.5 : " + (d.iaqi.pm25 ? d.iaqi.pm25.v + " µg/m³" : "--"));
-      setText("station", "Station : " + d.city.name);
-      setText("updated", "Mesure : " + d.time.iso.replace("T"," ").slice(0,16));
-
-    } catch (e) {
-      setText("updated", "Erreur réseau");
+    function setText(id, txt) {
+      document.getElementById(id).textContent = txt;
     }
-  }
 
-  // Compteur visible
-  setInterval(function () {
-    remaining--;
-    if (remaining < 0) remaining = REFRESH_SECONDS;
-    setText("countdown", "Prochaine mise à jour dans " + Math.ceil(remaining / 60) + " min");
-  }, 1000);
-
-  fetchAQI();
-  setInterval(fetchAQI, REFRESH_SECONDS * 1000);
-</script>
-
-</body>
-</html>
+    function polLabel(code) {
+      if (!code) return "--";
+      if (code === "pm25") return "PM2.5";
+      if (code === "pm10") return "PM10";
+      if (c
