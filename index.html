@@ -3,73 +3,42 @@
 <head>
   <meta charset="utf-8">
   <title>Qualité de l’air – Seocho</title>
-
-  <!-- Responsive iPad -->
   <meta name="viewport" content="width=device-width, initial-scale=1">
 
-  <!-- 🔁 Rafraîchissement COMPLET de la page toutes les 5 minutes -->
+  <!-- 🔁 Reload complet toutes les 5 minutes (très stable sur vieux iPad) -->
   <meta http-equiv="refresh" content="300">
 
   <style>
-    body {
-      margin: 0;
-      padding: 0;
-      background: #000;
-      color: #fff;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+    body{
+      margin:0; padding:0;
+      background:#000; color:#fff;
+      font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
     }
-
-    .wrap {
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
-      text-align: center;
-      padding: 20px;
-      box-sizing: border-box;
+    .wrap{
+      min-height:100vh;
+      display:flex;
+      flex-direction:column;
+      justify-content:center;
+      align-items:center;
+      text-align:center;
+      padding:20px;
+      box-sizing:border-box;
     }
-
-    .place {
-      font-size: 26px;
-      margin-bottom: 10px;
-      opacity: 0.9;
+    .place{ font-size:26px; margin-bottom:10px; opacity:.9; }
+    .big{ font-size:240px; font-weight:900; line-height:1; margin:0; }
+    .label{ font-size:22px; opacity:.8; margin-bottom:18px; }
+    .row{
+      display:flex; gap:14px; flex-wrap:wrap; justify-content:center;
+      margin-bottom:14px;
     }
-
-    .big {
-      font-size: 240px;
-      font-weight: 900;
-      line-height: 1;
-      margin: 0;
+    .pill{
+      border:2px solid #fff;
+      border-radius:999px;
+      padding:8px 14px;
+      font-size:16px;
+      white-space:nowrap;
     }
-
-    .label {
-      font-size: 22px;
-      opacity: 0.8;
-      margin-bottom: 20px;
-    }
-
-    .row {
-      display: flex;
-      gap: 14px;
-      flex-wrap: wrap;
-      justify-content: center;
-      margin-bottom: 16px;
-    }
-
-    .pill {
-      border: 2px solid #fff;
-      border-radius: 999px;
-      padding: 8px 14px;
-      font-size: 16px;
-      white-space: nowrap;
-    }
-
-    .muted {
-      font-size: 15px;
-      opacity: 0.75;
-      margin-top: 6px;
-    }
+    .muted{ font-size:15px; opacity:.75; margin-top:6px; }
   </style>
 </head>
 
@@ -89,28 +58,100 @@
       <div class="pill" id="station">Station : --</div>
     </div>
 
-    <div class="muted" id="updated">Dernière mesure : --</div>
+    <div class="muted" id="updated">Mesure : --</div>
     <div class="muted" id="countdown">Prochaine mise à jour : 5 min</div>
   </div>
 
   <script>
     // ===============================
-    // CONFIGURATION
+    // CONFIG
     // ===============================
-    var WORKER_URL = "https://seocho-aqi.lionel-zannier.workers.dev"; // ⬅️ À REMPLACER
-    var LAT = 37.4836;
-    var LON = 127.0327;
+    var WORKER_URL = "https://seocho-aqi.lionel-zannier.workers.dev";
+    var REFRESH_SECONDS = 300; // 5 minutes
 
-    // Rafraîchissement DONNÉES : 5 minutes
-    var REFRESH_SECONDS = 300;
-    var remaining = REFRESH_SECONDS;
-
-    function setText(id, txt) {
-      document.getElementById(id).textContent = txt;
+    // ===============================
+    // Helpers ultra robustes
+    // ===============================
+    function $(id){ return document.getElementById(id); }
+    function setText(id, value){
+      var el = $(id);
+      if (el) el.textContent = value;
     }
 
-    function polLabel(code) {
+    function polLabel(code){
       if (!code) return "--";
+      // WAQI renvoie pm25/pm10/o3/no2/so2...
       if (code === "pm25") return "PM2.5";
       if (code === "pm10") return "PM10";
-      if (c
+      if (code === "o3") return "O₃";
+      if (code === "no2") return "NO₂";
+      if (code === "so2") return "SO₂";
+      return String(code).toUpperCase();
+    }
+
+    // ===============================
+    // Data fetch
+    // ===============================
+    async function fetchAQI(){
+      try{
+        // cache-buster anti Safari
+        var url = WORKER_URL + "?_t=" + Date.now();
+
+        var res = await fetch(url, { cache: "no-store" });
+        var json = await res.json();
+
+        if (!json || json.status !== "ok" || !json.data){
+          setText("aqi", "ERR");
+          setText("updated", "Mesure : erreur données");
+          return;
+        }
+
+        var d = json.data;
+
+        // AQI (gros)
+        setText("aqi", (d.aqi !== undefined && d.aqi !== null) ? String(d.aqi) : "ERR");
+
+        // Polluant dominant
+        setText("main", "Polluant : " + polLabel(d.dominentpol));
+
+        // PM2.5 µg/m³ (quand présent)
+        var pm25 = (d.iaqi && d.iaqi.pm25 && d.iaqi.pm25.v !== undefined) ? d.iaqi.pm25.v : null;
+        setText("pm25", "PM2.5 : " + (pm25 !== null ? pm25 + " µg/m³" : "--"));
+
+        // Station
+        var station = (d.city && d.city.name) ? d.city.name : "--";
+        setText("station", "Station : " + station);
+
+        // Heure de mesure
+        var iso = (d.time && d.time.iso) ? d.time.iso : "";
+        var displayTime = iso ? iso.replace("T"," ").slice(0,16) : "--";
+        setText("updated", "Mesure : " + displayTime);
+
+      } catch(e){
+        setText("aqi", "NET");
+        setText("updated", "Mesure : erreur réseau");
+      }
+    }
+
+    // ===============================
+    // Countdown + scheduling
+    // ===============================
+    document.addEventListener("DOMContentLoaded", function(){
+      var remaining = REFRESH_SECONDS;
+
+      // Lance immédiatement
+      fetchAQI();
+
+      // Rafraîchit les données toutes les 5 minutes
+      setInterval(fetchAQI, REFRESH_SECONDS * 1000);
+
+      // Compteur visuel (en minutes)
+      setInterval(function(){
+        remaining--;
+        if (remaining < 0) remaining = REFRESH_SECONDS;
+        setText("countdown", "Prochaine mise à jour : " + Math.ceil(remaining / 60) + " min");
+      }, 1000);
+    });
+  </script>
+</body>
+</html>
