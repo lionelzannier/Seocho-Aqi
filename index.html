@@ -5,47 +5,76 @@
   <title>Qualité de l’air – Seocho</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
 
-  <!-- 🔁 Reload complet toutes les 5 minutes (très stable sur vieux iPad) -->
+  <!-- 🔁 Rechargement complet toutes les 5 minutes -->
   <meta http-equiv="refresh" content="300">
 
   <style>
-    body{
-      margin:0; padding:0;
-      background:#000; color:#fff;
-      font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
-.aqi-green  { color: #1b5e20; }
-.aqi-yellow { color: #f9a825; }
-.aqi-orange { color: #ef6c00; }
-.aqi-red    { color: #b71c1c; }
-.aqi-purple { color: #6a1b9a; }
+    body {
+      margin: 0;
+      padding: 0;
+      background: #000;
+      color: #fff;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+    }
 
-      
+    .wrap {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      padding: 20px;
+      box-sizing: border-box;
     }
-    .wrap{
-      min-height:100vh;
-      display:flex;
-      flex-direction:column;
-      justify-content:center;
-      align-items:center;
-      text-align:center;
-      padding:20px;
-      box-sizing:border-box;
+
+    .place {
+      font-size: 26px;
+      margin-bottom: 10px;
+      opacity: 0.9;
     }
-    .place{ font-size:26px; margin-bottom:10px; opacity:.9; }
-    .big{ font-size:240px; font-weight:900; line-height:1; margin:0; }
-    .label{ font-size:22px; opacity:.8; margin-bottom:18px; }
-    .row{
-      display:flex; gap:14px; flex-wrap:wrap; justify-content:center;
-      margin-bottom:14px;
+
+    .big {
+      font-size: 240px;
+      font-weight: 900;
+      line-height: 1;
+      margin: 0;
     }
-    .pill{
-      border:2px solid #fff;
-      border-radius:999px;
-      padding:8px 14px;
-      font-size:16px;
-      white-space:nowrap;
+
+    .label {
+      font-size: 22px;
+      opacity: 0.8;
+      margin-bottom: 18px;
     }
-    .muted{ font-size:15px; opacity:.75; margin-top:6px; }
+
+    .row {
+      display: flex;
+      gap: 14px;
+      flex-wrap: wrap;
+      justify-content: center;
+      margin-bottom: 14px;
+    }
+
+    .pill {
+      border: 2px solid #fff;
+      border-radius: 999px;
+      padding: 8px 14px;
+      font-size: 16px;
+      white-space: nowrap;
+    }
+
+    .muted {
+      font-size: 15px;
+      opacity: 0.75;
+      margin-top: 6px;
+    }
+
+    /* 🎨 Couleurs AQI (chiffre uniquement) */
+    .aqi-green  { color: #1b5e20; }
+    .aqi-yellow { color: #f9a825; }
+    .aqi-orange { color: #ef6c00; }
+    .aqi-red    { color: #b71c1c; }
+    .aqi-purple { color: #6a1b9a; }
   </style>
 </head>
 
@@ -66,29 +95,28 @@
     </div>
 
     <div class="muted" id="updated">Mesure : --</div>
-    <div class="muted" id="fetched">Rafraîchi : --</div>
     <div class="muted" id="countdown">Prochaine mise à jour : 5 min</div>
   </div>
 
   <script>
     // ===============================
-    // CONFIG
+    // CONFIGURATION
     // ===============================
     var WORKER_URL = "https://seocho-aqi.lionel-zannier.workers.dev";
     var REFRESH_SECONDS = 300; // 5 minutes
 
     // ===============================
-    // Helpers ultra robustes
+    // UTILITAIRES ROBUSTES
     // ===============================
-    function $(id){ return document.getElementById(id); }
-    function setText(id, value){
+    function $(id) { return document.getElementById(id); }
+
+    function setText(id, value) {
       var el = $(id);
       if (el) el.textContent = value;
     }
 
-    function polLabel(code){
+    function polLabel(code) {
       if (!code) return "--";
-      // WAQI renvoie pm25/pm10/o3/no2/so2...
       if (code === "pm25") return "PM2.5";
       if (code === "pm10") return "PM10";
       if (code === "o3") return "O₃";
@@ -97,89 +125,90 @@
       return String(code).toUpperCase();
     }
 
-    // ===============================
-    // Data fetch
-    // ===============================
-  
-   function applyAqiColor(aqi) {
-  var el = document.getElementById("aqi");
-  if (!el) return;
+    function applyAqiColor(aqi) {
+      var el = $("aqi");
+      if (!el) return;
 
-  el.classList.remove("aqi-green","aqi-yellow","aqi-orange","aqi-red","aqi-purple");
+      el.classList.remove(
+        "aqi-green",
+        "aqi-yellow",
+        "aqi-orange",
+        "aqi-red",
+        "aqi-purple"
+      );
 
-  if (aqi < 100) {
-    el.classList.add("aqi-green");
-  } else if (aqi >= 101 && aqi <= 120) {
-    el.classList.add("aqi-yellow");
-  } else if (aqi >= 121 && aqi <= 150) {
-    el.classList.add("aqi-orange");
-  } else if (aqi >= 151 && aqi <= 200) {
-    el.classList.add("aqi-red");
-  } else {
-    el.classList.add("aqi-purple");
-  }
-}
- 
-    
-    async function fetchAQI(){
-      try{
-        // cache-buster anti Safari
+      if (aqi < 100) {
+        el.classList.add("aqi-green");
+      } else if (aqi >= 101 && aqi <= 120) {
+        el.classList.add("aqi-yellow");
+      } else if (aqi >= 121 && aqi <= 150) {
+        el.classList.add("aqi-orange");
+      } else if (aqi >= 151 && aqi <= 200) {
+        el.classList.add("aqi-red");
+      } else {
+        el.classList.add("aqi-purple");
+      }
+    }
+
+    // ===============================
+    // RÉCUPÉRATION DES DONNÉES
+    // ===============================
+    async function fetchAQI() {
+      try {
         var url = WORKER_URL + "?_t=" + Date.now();
-
         var res = await fetch(url, { cache: "no-store" });
         var json = await res.json();
 
-        if (!json || json.status !== "ok" || !json.data){
+        if (!json || json.status !== "ok" || !json.data) {
           setText("aqi", "ERR");
           setText("updated", "Mesure : erreur données");
           return;
         }
 
         var d = json.data;
+        var aqi = Number(d.aqi);
 
-        // AQI (gros)
-        setText("aqi", (d.aqi !== undefined && d.aqi !== null) ? String(d.aqi) : "ERR");
-        applyAqiColor(Number(d.aqi));
+        setText("aqi", aqi);
+        applyAqiColor(aqi);
 
-        // Polluant dominant
         setText("main", "Polluant : " + polLabel(d.dominentpol));
 
-        // PM2.5 µg/m³ (quand présent)
-        var pm25 = (d.iaqi && d.iaqi.pm25 && d.iaqi.pm25.v !== undefined) ? d.iaqi.pm25.v : null;
+        var pm25 =
+          d.iaqi && d.iaqi.pm25 && d.iaqi.pm25.v !== undefined
+            ? d.iaqi.pm25.v
+            : null;
         setText("pm25", "PM2.5 : " + (pm25 !== null ? pm25 + " µg/m³" : "--"));
 
-        // Station
-        var station = (d.city && d.city.name) ? d.city.name : "--";
-        setText("station", "Station : " + station);
+        setText("station", "Station : " + (d.city && d.city.name ? d.city.name : "--"));
 
-        // Heure de mesure
-        var iso = (d.time && d.time.iso) ? d.time.iso : "";
-        var displayTime = iso ? iso.replace("T"," ").slice(0,16) : "--";
-        setText("updated", "Mesure : " + displayTime);
+        var iso = d.time && d.time.iso ? d.time.iso : "";
+        setText(
+          "updated",
+          "Mesure : " + (iso ? iso.replace("T", " ").slice(0, 16) : "--")
+        );
 
-      } catch(e){
+      } catch (e) {
         setText("aqi", "NET");
         setText("updated", "Mesure : erreur réseau");
       }
     }
 
     // ===============================
-    // Countdown + scheduling
+    // PLANIFICATION
     // ===============================
-    document.addEventListener("DOMContentLoaded", function(){
+    document.addEventListener("DOMContentLoaded", function () {
       var remaining = REFRESH_SECONDS;
 
-      // Lance immédiatement
       fetchAQI();
-
-      // Rafraîchit les données toutes les 5 minutes
       setInterval(fetchAQI, REFRESH_SECONDS * 1000);
 
-      // Compteur visuel (en minutes)
-      setInterval(function(){
+      setInterval(function () {
         remaining--;
         if (remaining < 0) remaining = REFRESH_SECONDS;
-        setText("countdown", "Prochaine mise à jour : " + Math.ceil(remaining / 60) + " min");
+        setText(
+          "countdown",
+          "Prochaine mise à jour : " + Math.ceil(remaining / 60) + " min"
+        );
       }, 1000);
     });
   </script>
