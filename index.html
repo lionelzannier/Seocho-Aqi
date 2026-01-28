@@ -34,22 +34,22 @@
       opacity: 0.9;
     }
 
-    /* 📦 Cartouche AQI (FORCÉ) */
+    /* 📦 Cartouche AQI */
     .aqi-box {
-      background: #e6e6e6;          /* gris clair bien visible */
+      background: #e6e6e6;
       border-radius: 36px;
       padding: 24px 48px;
       margin: 12px 0 18px;
       box-shadow: 0 10px 28px rgba(0,0,0,0.45);
     }
 
-    /* 🔢 Chiffre AQI : couleur par défaut NOIRE */
+    /* 🔢 Chiffre AQI (couleur par défaut forcée) */
     .big {
       font-size: 240px;
       font-weight: 900;
       line-height: 1;
       margin: 0;
-      color: #000;                 /* ← clé de la correction */
+      color: #000;
     }
 
     .label {
@@ -105,4 +105,110 @@
     </div>
 
     <div class="row">
-      <div class="pill"
+      <div class="pill" id="station">Station : --</div>
+    </div>
+
+    <div class="muted" id="updated">Mesure : --</div>
+    <div class="muted" id="countdown">Prochaine mise à jour : 5 min</div>
+  </div>
+
+  <script>
+    // ===============================
+    // CONFIGURATION
+    // ===============================
+    var WORKER_URL = "https://seocho-aqi.lionel-zannier.workers.dev";
+    var REFRESH_SECONDS = 300;
+
+    function $(id) { return document.getElementById(id); }
+
+    function setText(id, value) {
+      var el = $(id);
+      if (el) el.textContent = value;
+    }
+
+    function polLabel(code) {
+      if (!code) return "--";
+      if (code === "pm25") return "PM2.5";
+      if (code === "pm10") return "PM10";
+      if (code === "o3") return "O₃";
+      if (code === "no2") return "NO₂";
+      if (code === "so2") return "SO₂";
+      return String(code).toUpperCase();
+    }
+
+    function applyAqiColor(aqi) {
+      var el = $("aqi");
+      if (!el) return;
+
+      el.classList.remove(
+        "aqi-green",
+        "aqi-yellow",
+        "aqi-orange",
+        "aqi-red",
+        "aqi-purple"
+      );
+
+      if (aqi < 100) {
+        el.classList.add("aqi-green");
+      } else if (aqi <= 120) {
+        el.classList.add("aqi-yellow");
+      } else if (aqi <= 150) {
+        el.classList.add("aqi-orange");
+      } else if (aqi <= 200) {
+        el.classList.add("aqi-red");
+      } else {
+        el.classList.add("aqi-purple");
+      }
+    }
+
+    async function fetchAQI() {
+      try {
+        var res = await fetch(WORKER_URL + "?_t=" + Date.now(), { cache: "no-store" });
+        var json = await res.json();
+
+        if (!json || json.status !== "ok" || !json.data) {
+          setText("aqi", "ERR");
+          return;
+        }
+
+        var d = json.data;
+        var aqi = Number(d.aqi);
+
+        setText("aqi", aqi);
+        applyAqiColor(aqi);
+
+        setText("main", "Polluant : " + polLabel(d.dominentpol));
+
+        var pm25 = d.iaqi && d.iaqi.pm25 ? d.iaqi.pm25.v : "--";
+        setText("pm25", "PM2.5 : " + pm25 + " µg/m³");
+
+        setText("station", "Station : " + (d.city ? d.city.name : "--"));
+
+        var iso = d.time && d.time.iso ? d.time.iso : "";
+        setText("updated", "Mesure : " + (iso ? iso.replace("T"," ").slice(0,16) : "--"));
+
+      } catch (e) {
+        setText("aqi", "NET");
+      }
+    }
+
+    // ===============================
+    // PLANIFICATION (ULTRA ROBUSTE)
+    // ===============================
+    var remaining = REFRESH_SECONDS;
+
+    // ⛔ Safari iPad : appel forcé immédiat
+    fetchAQI();
+
+    // Rafraîchissement périodique
+    setInterval(fetchAQI, REFRESH_SECONDS * 1000);
+
+    // Compteur visuel
+    setInterval(function () {
+      remaining--;
+      if (remaining < 0) remaining = REFRESH_SECONDS;
+      setText("countdown", "Prochaine mise à jour : " + Math.ceil(remaining / 60) + " min");
+    }, 1000);
+  </script>
+</body>
+</html>
