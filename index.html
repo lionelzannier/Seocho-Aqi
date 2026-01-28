@@ -30,24 +30,26 @@
 
     .place {
       font-size: 26px;
-      margin-bottom: 10px;
+      margin-bottom: 12px;
       opacity: 0.9;
     }
 
-    /* 📦 Cartouche AQI */
+    /* 📦 Cartouche AQI (FORCÉ) */
     .aqi-box {
-      background: #e0e0e0;              /* gris clair */
-      border-radius: 32px;              /* angles arrondis */
-      padding: 20px 40px;
-      margin: 10px 0 16px;
-      box-shadow: 0 8px 24px rgba(0,0,0,0.35);
+      background: #e6e6e6;          /* gris clair bien visible */
+      border-radius: 36px;
+      padding: 24px 48px;
+      margin: 12px 0 18px;
+      box-shadow: 0 10px 28px rgba(0,0,0,0.45);
     }
 
+    /* 🔢 Chiffre AQI : couleur par défaut NOIRE */
     .big {
       font-size: 240px;
       font-weight: 900;
       line-height: 1;
       margin: 0;
+      color: #000;                 /* ← clé de la correction */
     }
 
     .label {
@@ -79,7 +81,28 @@
     }
 
     /* 🎨 Couleurs AQI (chiffre uniquement) */
-    .aqi-green  { color: #1b5e20; }
-    .aqi-yellow { color: #f9a825; }
-    .aqi-orange { color: #ef6c00; }
-    .aqi-red    { color: #b
+    .aqi-green  { color: #1b5e20 !important; }
+    .aqi-yellow { color: #f9a825 !important; }
+    .aqi-orange { color: #ef6c00 !important; }
+    .aqi-red    { color: #b71c1c !important; }
+    .aqi-purple { color: #6a1b9a !important; }
+  </style>
+</head>
+
+<body>
+  <div class="wrap">
+    <div class="place">Seocho-gu · Séoul</div>
+
+    <div class="aqi-box">
+      <div class="big" id="aqi">--</div>
+    </div>
+
+    <div class="label">Indice de qualité de l’air (AQI)</div>
+
+    <div class="row">
+      <div class="pill" id="main">Polluant : --</div>
+      <div class="pill" id="pm25">PM2.5 : --</div>
+    </div>
+
+    <div class="row">
+      <div class="pill"
