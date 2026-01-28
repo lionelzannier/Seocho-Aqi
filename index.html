@@ -13,6 +13,13 @@
       margin:0; padding:0;
       background:#000; color:#fff;
       font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
+.aqi-green  { color: #1b5e20; }
+.aqi-yellow { color: #f9a825; }
+.aqi-orange { color: #ef6c00; }
+.aqi-red    { color: #b71c1c; }
+.aqi-purple { color: #6a1b9a; }
+
+      
     }
     .wrap{
       min-height:100vh;
@@ -93,6 +100,27 @@
     // ===============================
     // Data fetch
     // ===============================
+  
+   function applyAqiColor(aqi) {
+  var el = document.getElementById("aqi");
+  if (!el) return;
+
+  el.classList.remove("aqi-green","aqi-yellow","aqi-orange","aqi-red","aqi-purple");
+
+  if (aqi < 100) {
+    el.classList.add("aqi-green");
+  } else if (aqi >= 101 && aqi <= 120) {
+    el.classList.add("aqi-yellow");
+  } else if (aqi >= 121 && aqi <= 150) {
+    el.classList.add("aqi-orange");
+  } else if (aqi >= 151 && aqi <= 200) {
+    el.classList.add("aqi-red");
+  } else {
+    el.classList.add("aqi-purple");
+  }
+}
+ 
+    
     async function fetchAQI(){
       try{
         // cache-buster anti Safari
@@ -111,6 +139,7 @@
 
         // AQI (gros)
         setText("aqi", (d.aqi !== undefined && d.aqi !== null) ? String(d.aqi) : "ERR");
+        applyAqiColor(Number(d.aqi));
 
         // Polluant dominant
         setText("main", "Polluant : " + polLabel(d.dominentpol));
