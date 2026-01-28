@@ -34,6 +34,15 @@
       opacity: 0.9;
     }
 
+    /* 📦 Cartouche AQI */
+    .aqi-box {
+      background: #e0e0e0;              /* gris clair */
+      border-radius: 32px;              /* angles arrondis */
+      padding: 20px 40px;
+      margin: 10px 0 16px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.35);
+    }
+
     .big {
       font-size: 240px;
       font-weight: 900;
@@ -73,144 +82,4 @@
     .aqi-green  { color: #1b5e20; }
     .aqi-yellow { color: #f9a825; }
     .aqi-orange { color: #ef6c00; }
-    .aqi-red    { color: #b71c1c; }
-    .aqi-purple { color: #6a1b9a; }
-  </style>
-</head>
-
-<body>
-  <div class="wrap">
-    <div class="place">Seocho-gu · Séoul</div>
-
-    <div class="big" id="aqi">--</div>
-    <div class="label">Indice de qualité de l’air (AQI)</div>
-
-    <div class="row">
-      <div class="pill" id="main">Polluant : --</div>
-      <div class="pill" id="pm25">PM2.5 : --</div>
-    </div>
-
-    <div class="row">
-      <div class="pill" id="station">Station : --</div>
-    </div>
-
-    <div class="muted" id="updated">Mesure : --</div>
-    <div class="muted" id="countdown">Prochaine mise à jour : 5 min</div>
-  </div>
-
-  <script>
-    // ===============================
-    // CONFIGURATION
-    // ===============================
-    var WORKER_URL = "https://seocho-aqi.lionel-zannier.workers.dev";
-    var REFRESH_SECONDS = 300; // 5 minutes
-
-    // ===============================
-    // UTILITAIRES ROBUSTES
-    // ===============================
-    function $(id) { return document.getElementById(id); }
-
-    function setText(id, value) {
-      var el = $(id);
-      if (el) el.textContent = value;
-    }
-
-    function polLabel(code) {
-      if (!code) return "--";
-      if (code === "pm25") return "PM2.5";
-      if (code === "pm10") return "PM10";
-      if (code === "o3") return "O₃";
-      if (code === "no2") return "NO₂";
-      if (code === "so2") return "SO₂";
-      return String(code).toUpperCase();
-    }
-
-    function applyAqiColor(aqi) {
-      var el = $("aqi");
-      if (!el) return;
-
-      el.classList.remove(
-        "aqi-green",
-        "aqi-yellow",
-        "aqi-orange",
-        "aqi-red",
-        "aqi-purple"
-      );
-
-      if (aqi < 100) {
-        el.classList.add("aqi-green");
-      } else if (aqi >= 101 && aqi <= 120) {
-        el.classList.add("aqi-yellow");
-      } else if (aqi >= 121 && aqi <= 150) {
-        el.classList.add("aqi-orange");
-      } else if (aqi >= 151 && aqi <= 200) {
-        el.classList.add("aqi-red");
-      } else {
-        el.classList.add("aqi-purple");
-      }
-    }
-
-    // ===============================
-    // RÉCUPÉRATION DES DONNÉES
-    // ===============================
-    async function fetchAQI() {
-      try {
-        var url = WORKER_URL + "?_t=" + Date.now();
-        var res = await fetch(url, { cache: "no-store" });
-        var json = await res.json();
-
-        if (!json || json.status !== "ok" || !json.data) {
-          setText("aqi", "ERR");
-          setText("updated", "Mesure : erreur données");
-          return;
-        }
-
-        var d = json.data;
-        var aqi = Number(d.aqi);
-
-        setText("aqi", aqi);
-        applyAqiColor(aqi);
-
-        setText("main", "Polluant : " + polLabel(d.dominentpol));
-
-        var pm25 =
-          d.iaqi && d.iaqi.pm25 && d.iaqi.pm25.v !== undefined
-            ? d.iaqi.pm25.v
-            : null;
-        setText("pm25", "PM2.5 : " + (pm25 !== null ? pm25 + " µg/m³" : "--"));
-
-        setText("station", "Station : " + (d.city && d.city.name ? d.city.name : "--"));
-
-        var iso = d.time && d.time.iso ? d.time.iso : "";
-        setText(
-          "updated",
-          "Mesure : " + (iso ? iso.replace("T", " ").slice(0, 16) : "--")
-        );
-
-      } catch (e) {
-        setText("aqi", "NET");
-        setText("updated", "Mesure : erreur réseau");
-      }
-    }
-
-    // ===============================
-    // PLANIFICATION
-    // ===============================
-    document.addEventListener("DOMContentLoaded", function () {
-      var remaining = REFRESH_SECONDS;
-
-      fetchAQI();
-      setInterval(fetchAQI, REFRESH_SECONDS * 1000);
-
-      setInterval(function () {
-        remaining--;
-        if (remaining < 0) remaining = REFRESH_SECONDS;
-        setText(
-          "countdown",
-          "Prochaine mise à jour : " + Math.ceil(remaining / 60) + " min"
-        );
-      }, 1000);
-    });
-  </script>
-</body>
-</html>
+    .aqi-red    { color: #b
